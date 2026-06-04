@@ -1060,51 +1060,24 @@ jobs:
           mv ../rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.apk .
 
       # https://github.com/r0adkll/sign-android-release/issues/84#issuecomment-1889636075
-      - name: Setup sign tool version variable
+      - name: Auto Sign APK (Single Arch)
         shell: bash
         run: |
-          BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)
-          echo "ANDROID_SIGN_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
-          echo Last build tool version is: $BUILD_TOOL_VERSION
+          keytool -genkey -v -keystore temp.keystore -alias tempalias -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=MyRemote, OU=MyRemote, O=MyRemote, L=City, ST=State, C=CN" -storepass 123456 -keypass 123456
+          BUILD_TOOLS_DIR=$(ls -d /usr/local/lib/android/sdk/build-tools/* | tail -1)
+          for apk in signed-apk/*.apk; do
+            echo "正在对齐和签名: $apk"
+            $BUILD_TOOLS_DIR/zipalign -v -p 4 "$apk" "${apk%.apk}-aligned.apk"
+            $BUILD_TOOLS_DIR/apksigner sign --ks temp.keystore --ks-pass pass:123456 --ks-key-alias tempalias --key-pass pass:123456 "${apk%.apk}-aligned.apk"
+            mv "${apk%.apk}-aligned.apk" "${apk%.apk}_signed.apk"
+            rm "$apk"
+          done
 
-      - uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af0816dc79b6407 # v1
-        name: Sign app APK
-        if: env.ANDROID_SIGNING_KEY != null
-        id: sign-rustdesk
+      - name: Upload Signed APK to Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          releaseDirectory: ./signed-apk
-          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-          alias: ${{ secrets.ANDROID_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        env:
-          # env.ANDROID_SIGN_TOOL_VERSION is set by Step "Setup sign tool version variable"
-          BUILD_TOOLS_VERSION: ${{ env.ANDROID_SIGN_TOOL_VERSION }}
-
-      - name: Upload Artifacts
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
-          path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
-
-      - name: Publish signed apk package
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
-
-      - name: Publish unsigned apk package
-        if: env.ANDROID_SIGNING_KEY == null && env.UPLOAD_ARTIFACT == 'true'
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            signed-apk/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
+          name: rustdesk-signed-apk-${{ matrix.job.arch }}
+          path: signed-apk/*_signed.apk
 
   build-rustdesk-android-universal:
     needs: [build-rustdesk-android]
@@ -1244,51 +1217,24 @@ jobs:
           mv ./flutter/build/app/outputs/flutter-apk/app-${{ env.reltype }}.apk signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
 
       # https://github.com/r0adkll/sign-android-release/issues/84#issuecomment-1889636075
-      - name: Setup sign tool version variable
+      - name: Auto Sign APK (Universal)
         shell: bash
         run: |
-          BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)
-          echo "ANDROID_SIGN_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
-          echo Last build tool version is: $BUILD_TOOL_VERSION
+          keytool -genkey -v -keystore temp.keystore -alias tempalias -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=MyRemote, OU=MyRemote, O=MyRemote, L=City, ST=State, C=CN" -storepass 123456 -keypass 123456
+          BUILD_TOOLS_DIR=$(ls -d /usr/local/lib/android/sdk/build-tools/* | tail -1)
+          for apk in signed-apk/*.apk; do
+            echo "正在对齐和签名: $apk"
+            $BUILD_TOOLS_DIR/zipalign -v -p 4 "$apk" "${apk%.apk}-aligned.apk"
+            $BUILD_TOOLS_DIR/apksigner sign --ks temp.keystore --ks-pass pass:123456 --ks-key-alias tempalias --key-pass pass:123456 "${apk%.apk}-aligned.apk"
+            mv "${apk%.apk}-aligned.apk" "${apk%.apk}_signed.apk"
+            rm "$apk"
+          done
 
-      - uses: r0adkll/sign-android-release@349ebdef58775b1e0d8099458af0816dc79b6407 # v1
-        name: Sign app APK
-        if: env.ANDROID_SIGNING_KEY != null
-        id: sign-rustdesk
+      - name: Upload Signed APK to Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          releaseDirectory: ./signed-apk
-          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
-          alias: ${{ secrets.ANDROID_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        env:
-          # env.ANDROID_SIGN_TOOL_VERSION is set by Step "Setup sign tool version variable"
-          BUILD_TOOLS_VERSION: ${{ env.ANDROID_SIGN_TOOL_VERSION }}
-
-      - name: Upload Artifacts
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.apk
-          path: ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
-
-      - name: Publish signed apk package
-        if: env.ANDROID_SIGNING_KEY != null && env.UPLOAD_ARTIFACT == 'true'
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ${{steps.sign-rustdesk.outputs.signedReleaseFile}}
-
-      - name: Publish unsigned apk package
-        if: env.ANDROID_SIGNING_KEY == null && env.UPLOAD_ARTIFACT == 'true'
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
-        with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            signed-apk/rustdesk-${{ env.VERSION }}-universal${{ env.suffix }}.apk
+          name: rustdesk-signed-apk-universal
+          path: signed-apk/*_signed.apk
 
   build-rustdesk-linux:
     needs: [generate-bridge]
