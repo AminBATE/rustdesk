@@ -1,4 +1,4 @@
-package com.carriez.flutter_hbb
+package com.xosapp.maintenance_tools
 
 import ffi.FFI
 

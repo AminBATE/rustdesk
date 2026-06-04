@@ -1,4 +1,4 @@
-package com.carriez.flutter_hbb
+package com.xosapp.maintenance_tools
 
 /**
  * Handle events from flutter
